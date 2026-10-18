@@ -76,6 +76,12 @@ def _ats_format(a, c):
     return score / total, flags
 
 
+def jd_embedding_text(prof):
+    return " ".join([prof.get("summary", ""), *prof.get("signals", []),
+                     *[f"{x['name']}: {x['description']}" for x in prof.get("competencies", [])],
+                     prof.get("jd_text", "")[:3000]])
+
+
 class Context:
     """Cohort-level state: lets cohort-relative signals (tfidf, embeddings) be scored for new resumes too."""
 
@@ -89,14 +95,16 @@ class Context:
         self.tf_sims = (mat @ self.jd_vec.T).toarray().ravel()
         self.sem_sims, self.jd_emb = None, None
         if embeddings and llm.available():
+            jd_doc = jd_embedding_text(prof)
+            docs = [jd_doc] + [t[:8000] for t in texts]
             try:
-                jd_doc = " ".join([prof.get("summary", ""), *prof.get("signals", []),
-                                   *[f"{x['name']}: {x['description']}" for x in prof.get("competencies", [])],
-                                   prof.get("jd_text", "")[:3000]])
-                vecs = self._norm(np.array(llm.embed([jd_doc] + [t[:8000] for t in texts])))
-                self.jd_emb, self.sem_sims = vecs[0], vecs[1:] @ vecs[0]
+                # "cached" never blocks on the network; True fetches whatever is missing (slow first time)
+                vecs = llm.embed_cached(docs) if embeddings == "cached" else llm.embed(docs)
             except llm.LLMError:
-                pass
+                vecs = None
+            if vecs is not None:
+                vecs = self._norm(np.array(vecs))
+                self.jd_emb, self.sem_sims = vecs[0], vecs[1:] @ vecs[0]
 
     @staticmethod
     def _norm(v):

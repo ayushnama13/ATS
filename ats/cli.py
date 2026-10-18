@@ -2,14 +2,14 @@
 import argparse
 import sys
 
-from . import export, features, ingest, jd, rubric, scoring
+from . import export, features, ingest, jd, llm, rubric, scoring
 
 
 def _prepare(slug, with_rubric=True):
     comp = ingest.load_company(slug)
     prof = jd.build_profile(slug)
     cached = rubric.load_cached(slug, comp["candidates"], prof) if with_rubric else {}
-    feats, _ = features.compute(comp["candidates"], prof, llm_results=cached)
+    feats, _ = features.compute(comp["candidates"], prof, embeddings="cached", llm_results=cached)
     return comp, prof, feats
 
 
@@ -17,7 +17,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="ats")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("companies")
-    for n in ("profile", "rubric", "rank"):
+    for n in ("profile", "rubric", "rank", "embed"):
         p = sub.add_parser(n)
         p.add_argument("slug")
         if n == "profile":
@@ -52,6 +52,12 @@ def main(argv=None):
         print(f"\nscored {len(res)}, errors {len(errs)}")
         for roll, e in errs[:10]:
             print("  ", roll, e)
+    elif a.cmd == "embed":
+        comp = ingest.load_company(a.slug)
+        prof = jd.build_profile(a.slug)
+        docs = [features.jd_embedding_text(prof)] + [c["text"][:8000] or " " for c in comp["candidates"]]
+        llm.embed(docs, progress=lambda d, t: print(f"\r{d}/{t}", end="", file=sys.stderr, flush=True))
+        print("\nembedded", len(docs))
     elif a.cmd == "rank":
         comp, prof, feats = _prepare(a.slug)
         rows = scoring.rank(comp["candidates"], feats, flt={"min_cgpa": a.min_cgpa})

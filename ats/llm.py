@@ -54,7 +54,7 @@ def _post(path, body, timeout=120, retries=6):
             last = f"HTTP {r.status_code}: {r.text[:200]}"
             if r.status_code == 429:
                 m = re.search(r"retry in ([\d.]+)s", r.text)
-                time.sleep(min(float(m.group(1)) + 1 if m else 15, 70))
+                time.sleep(min(float(m.group(1)) + 1 if m else 30, 70))
                 continue
             if r.status_code not in (500, 502, 503, 504):
                 break
@@ -108,23 +108,38 @@ def ocr_pdf(pdf_bytes):
     return _text(_post(f"models/{config.GEMINI_MODEL}:generateContent", body, timeout=180))
 
 
-def embed(texts, task="SEMANTIC_SIMILARITY"):
-    """Return one vector per text (cached per text)."""
+def _emb_key(t):
+    return "emb:" + config.GEMINI_EMBED_MODEL + ":" + hashlib.sha1(t[:config.EMBED_CHARS].encode()).hexdigest()
+
+
+def embed_cached(texts):
+    """Vectors for texts if ALL are cached, else None (never hits the network)."""
+    out = [store.get(_emb_key(t)) for t in texts]
+    return None if any(v is None for v in out) else out
+
+
+def embed(texts, task="SEMANTIC_SIMILARITY", progress=None):
+    """One vector per text. Paced by estimated tokens to stay under the free-tier tokens/minute quota."""
     out, todo = {}, []
     for i, t in enumerate(texts):
-        k = "emb:" + config.GEMINI_EMBED_MODEL + ":" + hashlib.sha1(t.encode()).hexdigest()
-        hit = store.get(k)
+        hit = store.get(_emb_key(t))
         if hit is not None:
             out[i] = hit
         else:
-            todo.append((i, k, t))
-    for s in range(0, len(todo), 50):
-        batch = todo[s:s + 50]
+            todo.append((i, t[:config.EMBED_CHARS]))
+    step = 10
+    for s in range(0, len(todo), step):
+        t0 = time.monotonic()
+        batch = todo[s:s + step]
         body = {"requests": [{"model": f"models/{config.GEMINI_EMBED_MODEL}",
-                              "content": {"parts": [{"text": t[:8000]}]}, "taskType": task}
-                             for _, _, t in batch]}
-        resp = _post(f"models/{config.GEMINI_EMBED_MODEL}:batchEmbedContents", body)
-        for (i, k, _), e in zip(batch, resp["embeddings"]):
+                              "content": {"parts": [{"text": t}]}, "taskType": task} for _, t in batch]}
+        resp = _post(f"models/{config.GEMINI_EMBED_MODEL}:batchEmbedContents", body, retries=10)
+        for (i, t), e in zip(batch, resp["embeddings"]):
             out[i] = e["values"]
-            store.put(k, e["values"])
+            store.put(_emb_key(t), e["values"])
+        if progress:
+            progress(min(s + step, len(todo)), len(todo))
+        if s + step < len(todo):
+            tokens = sum(len(t) for _, t in batch) / 3.5
+            time.sleep(max(0.0, tokens * 60 / config.EMBED_TPM - (time.monotonic() - t0)))
     return [out[i] for i in range(len(texts))]
