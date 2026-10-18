@@ -1,0 +1,87 @@
+{
+  "role_title": "Analytics Consultant",
+  "company": "Accenture",
+  "summary": "Develop analytics solutions, statistical models, and data-driven insights to support business operations, marketing, and forecasting for global clients, leveraging AI/ML techniques and large-scale data processing.",
+  "must_have_skills": [
+    "python",
+    "sql",
+    "spark",
+    "tableau",
+    "power bi",
+    "excel",
+    "powerpoint"
+  ],
+  "nice_to_have_skills": [
+    "r",
+    "sas",
+    "genai / llm"
+  ],
+  "competencies": [
+    {
+      "name": "Statistical Modeling",
+      "description": "Evidence of applying regression, clustering, decision trees, or survival analysis to solve business problems.",
+      "weight": 5
+    },
+    {
+      "name": "Data-Driven Problem Solving",
+      "description": "Demonstrated ability to extract strategic insights from large, complex datasets.",
+      "weight": 4
+    },
+    {
+      "name": "Communication",
+      "description": "Ability to translate complex analytical findings into actionable business recommendations.",
+      "weight": 4
+    },
+    {
+      "name": "AI/ML Fluency",
+      "description": "Evidence of curiosity or project work involving AI, machine learning, or predictive modeling.",
+      "weight": 3
+    },
+    {
+      "name": "Adaptability",
+      "description": "Willingness to travel extensively and learn new AI tools on the job.",
+      "weight": 2
+    }
+  ],
+  "signals": [
+    "Experience with forecasting or predictive modeling projects",
+    "End-to-end data analysis projects (from data extraction to visualization)",
+    "Participation in data science competitions or hackathons",
+    "Evidence of using statistical techniques in academic or professional research"
+  ],
+  "preferred_programs": [
+    "M.Sc",
+    "MBA",
+    "M.S"
+  ],
+  "preferred_departments": [
+    "Statistics",
+    "Quantitative Science",
+    "Business Administration"
+  ],
+  "min_cgpa": null,
+  "keywords": [
+    "Analytics solutions",
+    "Marketing analytics",
+    "Customer segmentation",
+    "Forecasting",
+    "Statistical testing",
+    "Exploratory data analysis",
+    "Regression analysis",
+    "Bootstrapping",
+    "Decision trees",
+    "Cluster analysis",
+    "Choice modeling",
+    "Survival analysis",
+    "GenAI",
+    "Data management",
+    "Strategic insights",
+    "Large data sets",
+    "Computer programming",
+    "Business operations",
+    "Predictive modelling",
+    "Data visualization"
+  ],
+  "source": "llm",
+  "jd_text": "About Accenture\n\nAccenture helps the world\u2019s leading enterprises reinvent by building their digital core and unleashing the power of AI to create value at speed for organizations across industries. Our strategy is to be the reinvention partner of choice for our clients and lead in the safe, widespread adoption of AI, and to be the most client-focused, AI-enabled, great place to work in the world. We bring together the talent of our approximately 786,000 people with proprietary assets and platforms, deep process and industry expertise, and leading ecosystem relationships to deliver end-to-end solutions and measurable outcomes at scale. Through our Reinvention Services, we offer broad expertise across Cybersecurity, Digital Core, Finance, Industry and Enterprise, Song, Supply Chain and Engineering, and Talent, with advanced capabilities in AI and Data, Industry and Process, and Technology. We serve approximately 9,000 clients and generated approximately $70 billion in FY25 revenue. Visit us at accenture.com.\n \nAccenture Global Network \n\nAccenture Global Network helps our clients grow their business in entirely new ways. Analytics enables our clients to achieve high performance through insights from data - insights that inform better decisions and strengthen customer relationships. From strategy to execution, Accenture works with organizations to develop analytic capabilities - from accessing and reporting on data to predictive modelling - to outperform the competition.\nAs part of our Analytics practice, you will join a worldwide network of smart and driven colleagues experienced in leading AI/ML/Statistical tools, methods and applications. From data to analytics and insights to actions, our forward-thinking consultants provide analytically-informed, issue-based insights at scale to help our clients improve outcomes and achieve high performance.\n\nPosition Summary \n\nDuties and Responsibilities: \n\nDevelop analytics solutions to support business analytics such as marketing analytics, customer segmentation, acquisition, business operations, retention and forecasting. \nDevelop statistical testing programs to measure and improve on-going performance. \nApply appropriate techniques, such as exploratory data analysis, regression analysis, bootstrapping, decision trees, cluster analysis, choice modeling, survival analysis etc.\nCuriosity about AI and its business applications; willingness to build AI fluency on the job.\nFamiliarity with AI/GenAI tools or platforms.\n\nRequirements: \n\nMaster\u2019s degree in Statistics or Quantitative Science or MBA\nShould have done forecasting/modeling, data analysis, used regression/optimization models and techniques. Experience in machine learning osure to one or more of Data science capabilities; preferably python. Others are - R, SAS\nNeeds to have data management capabilities, with skills in SQL, Spark and data visualization capabilities in Tableau/power BI\nStrong ability to process and extract strategic insights from large data sets \nExposure to computer programming in some form.\nGood communication skills \nOpen to extensive travel (upto 2 months at a stretch) \nAdvanced Excel and PowerPoint skills "
+}
