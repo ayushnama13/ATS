@@ -25,4 +25,5 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.environ.get("ATS_MODEL", "gemini-3.1-flash-lite")
 GEMINI_EMBED_MODEL = os.environ.get("ATS_EMBED_MODEL", "gemini-embedding-001")
 GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
-LLM_CONCURRENCY = int(os.environ.get("ATS_LLM_CONCURRENCY", "6"))
+LLM_CONCURRENCY = int(os.environ.get("ATS_LLM_CONCURRENCY", "4"))
+LLM_RPM = int(os.environ.get("ATS_LLM_RPM", "13"))  # free tier allows 15/min per model

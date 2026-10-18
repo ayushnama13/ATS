@@ -3,7 +3,9 @@ import base64
 import hashlib
 import json
 import re
+import threading
 import time
+from collections import deque
 
 import httpx
 
@@ -18,18 +20,43 @@ def available():
     return bool(config.GEMINI_API_KEY)
 
 
-def _post(path, body, timeout=120, retries=5):
+_rl_lock = threading.Lock()
+_rl_calls = {}  # model -> deque of recent call timestamps
+
+
+def _throttle(path):
+    """Sliding 60s window per model so parallel workers share the free-tier requests/minute quota."""
+    key = path.split(":")[0]
+    while True:
+        with _rl_lock:
+            dq = _rl_calls.setdefault(key, deque())
+            now = time.monotonic()
+            while dq and now - dq[0] > 60:
+                dq.popleft()
+            if len(dq) < config.LLM_RPM:
+                dq.append(now)
+                return
+            wait = 60 - (now - dq[0]) + 0.05
+        time.sleep(max(wait, 0.05))
+
+
+def _post(path, body, timeout=120, retries=6):
     if not available():
         raise LLMError("GEMINI_API_KEY not set")
     url = f"{config.GEMINI_BASE}/{path}"
     last = None
     for i in range(retries):
+        _throttle(path)
         try:
             r = httpx.post(url, json=body, params={"key": config.GEMINI_API_KEY}, timeout=timeout)
             if r.status_code == 200:
                 return r.json()
             last = f"HTTP {r.status_code}: {r.text[:200]}"
-            if r.status_code not in (429, 500, 502, 503, 504):
+            if r.status_code == 429:
+                m = re.search(r"retry in ([\d.]+)s", r.text)
+                time.sleep(min(float(m.group(1)) + 1 if m else 15, 70))
+                continue
+            if r.status_code not in (500, 502, 503, 504):
                 break
         except httpx.HTTPError as e:
             last = f"{type(e).__name__}: {e}"
