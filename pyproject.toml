@@ -1,0 +1,9 @@
+[project]
+name = "ats"
+version = "0.1.0"
+description = "ATS scanner and resume ranker"
+requires-python = ">=3.10"
+dependencies = ["fastapi", "uvicorn", "openpyxl", "python-docx", "rapidfuzz", "scikit-learn", "httpx", "python-multipart", "pypdf"]
+
+[tool.setuptools]
+packages = ["ats"]

@@ -1,0 +1,114 @@
+"""Load a company folder: applicant sheet (TSV in .xls clothing) + resumes + JD."""
+import csv
+import json
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+from . import config
+from .extract import extract
+
+RESUME_EXTS = (".pdf", ".docx", ".doc")
+
+
+def company_dir(slug):
+    d = config.COMPANIES / slug
+    if not d.is_dir():
+        raise FileNotFoundError(f"no such company: {slug}")
+    return d
+
+
+def list_companies():
+    if not config.COMPANIES.exists():
+        return []
+    return sorted(p.name for p in config.COMPANIES.iterdir() if p.is_dir())
+
+
+def parse_sheet(path):
+    """Placement-portal export: row 1 is a title, row 2 the header, then one row per student."""
+    lines = Path(path).read_text("utf-8", "ignore").splitlines()
+    title = lines[0].strip() if lines else ""
+    reader = csv.reader(lines[1:], delimiter="\t")
+    header = [h.strip() for h in next(reader)]
+    rows = []
+    for r in reader:
+        if not any(c.strip() for c in r):
+            continue
+        d = dict(zip(header, (c.strip() for c in r)))
+        roll = d.get("Roll Number", "").upper()
+        if not roll:
+            continue
+        try:
+            cgpa = float(d.get("CGPA", ""))
+        except ValueError:
+            cgpa = None
+        rows.append({
+            "roll": roll, "name": " ".join(d.get("Student Name", "").split()).title(),
+            "email": d.get("Email Address", ""), "gender": d.get("Gender", ""),
+            "program": d.get("Program Name", ""), "dept": d.get("Department Name", ""),
+            "spec": d.get("Sepecialization Name", ""), "cgpa": cgpa,
+            "status": d.get("Status", ""), "placed": d.get("Placed Status", ""),
+        })
+    return title, rows
+
+
+def find_resume(resume_dir, roll):
+    for ext in RESUME_EXTS:
+        p = resume_dir / f"{roll}{ext}"
+        if p.exists():
+            return p
+    return None
+
+
+def load_company(slug, with_text=True, ocr=True):
+    d = company_dir(slug)
+    title, rows = parse_sheet(d / "applicants.tsv")
+    rdir = d / "resumes"
+    seen, cands = set(), []
+    for r in rows:
+        if r["roll"] in seen:
+            continue
+        seen.add(r["roll"])
+        r["resume_file"] = None
+        r["text"], r["pages"], r["words"], r["ocr"], r["error"] = "", 0, 0, False, None
+        cands.append(r)
+
+    def work(c):
+        f = find_resume(rdir, c["roll"])
+        if not f:
+            c["error"] = "resume file missing"
+            return
+        c["resume_file"] = f.name
+        if with_text:
+            e = extract(f, allow_ocr=ocr)
+            c.update(text=e["text"], pages=e["pages"], words=e["words"], ocr=e.get("ocr", False),
+                     error=e.get("error"))
+
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        list(ex.map(work, cands))
+    return {"slug": slug, "title": title, "candidates": cands}
+
+
+def jd_file(slug):
+    d = company_dir(slug)
+    for n in ("jd.docx", "jd.pdf", "jd.doc", "jd.txt"):
+        if (d / n).exists():
+            return d / n
+    return None
+
+
+def jd_text(slug):
+    f = jd_file(slug)
+    if not f:
+        raise FileNotFoundError(f"no JD file for {slug}")
+    if f.suffix == ".txt":
+        return f.read_text("utf-8", "ignore")
+    return extract(f, allow_ocr=False)["text"]
+
+
+def load_jd_profile(slug):
+    p = company_dir(slug) / "jd.json"
+    return json.loads(p.read_text()) if p.exists() else None
+
+
+def save_jd_profile(slug, profile):
+    (company_dir(slug) / "jd.json").write_text(json.dumps(profile, indent=2))

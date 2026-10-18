@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/cache.sqlite*
+data/companies/*/resumes/
+data/companies/*/resumes.zip
+data/companies/*/applicants.tsv
+data/uploads/
+out/
