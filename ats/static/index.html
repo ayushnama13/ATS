@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ATS Scanner</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">ATS<span>scanner</span></div>
+  <nav id="tabs">
+    <button data-tab="rank" class="on">Rank applicants</button>
+    <button data-tab="check">Check a resume</button>
+    <button data-tab="jd">JD profile</button>
+  </nav>
+  <select id="company" aria-label="Company"></select>
+</header>
+
+<main>
+<section id="tab-rank" class="tab on">
+  <aside class="panel">
+    <div class="row between"><h3>Ranking factors</h3>
+      <span><button class="link" id="allOn">all on</button> · <button class="link" id="allOff">all off</button></span></div>
+    <p class="hint">Toggle a factor off to ignore it; weights are relative. Factors that don't apply to a JD or a candidate drop out automatically.</p>
+    <div id="factors"></div>
+
+    <h3>Presets</h3>
+    <div class="row"><select id="presetSel"></select>
+      <button id="presetSave" title="Save current settings as a preset">Save as…</button>
+      <button id="presetDel" title="Delete selected preset">🗑</button></div>
+
+    <h3>Filters</h3>
+    <label class="f">Min CGPA <input id="fCgpa" type="number" step="0.1" min="0" max="10" placeholder="none"></label>
+    <label class="f">Program <select id="fProg" multiple size="3"></select></label>
+    <label class="f">Department <select id="fDept" multiple size="4"></select></label>
+    <label class="chk"><input type="checkbox" id="fPlaced"> Hide already-placed</label>
+    <label class="chk"><input type="checkbox" id="fReadable"> Hide unreadable resumes</label>
+    <button class="link" id="fClear">clear filters</button>
+
+    <h3>AI rubric review</h3>
+    <p class="hint" id="rubricInfo"></p>
+    <div class="row"><select id="rubricScope">
+        <option value="30">Top 30</option><option value="100">Top 100</option><option value="">Everyone</option></select>
+      <button id="rubricRun" class="primary">Run</button></div>
+    <div class="bar" id="rubricBar" hidden><i></i></div>
+  </aside>
+
+  <div class="main">
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search name, roll, department…">
+      <span id="count" class="muted"></span>
+      <span class="grow"></span>
+      <button id="exportBtn" class="primary">Export Excel</button>
+    </div>
+    <div id="notice" class="notice" hidden></div>
+    <div class="tablewrap"><table id="tbl">
+      <thead><tr><th>#</th><th>Candidate</th><th>Program</th><th class="num">CGPA</th><th>Score</th><th>Breakdown</th><th>AI verdict</th></tr></thead>
+      <tbody></tbody></table></div>
+  </div>
+</section>
+
+<section id="tab-check" class="tab">
+  <div class="narrow">
+    <h2>How would my resume do?</h2>
+    <p class="muted">Upload a resume (PDF/DOCX) to see its score against this company's JD and how it ranks among the actual applicants, plus what to fix.</p>
+    <form id="checkForm" class="card">
+      <label class="f">Resume <input type="file" id="chkFile" accept=".pdf,.docx,.doc" required></label>
+      <div class="grid3">
+        <label class="f">CGPA (optional) <input id="chkCgpa" type="number" step="0.01" min="0" max="10"></label>
+        <label class="f">Program (optional) <input id="chkProg" placeholder="e.g. M.Tech"></label>
+        <label class="f">Department (optional) <input id="chkDept" placeholder="e.g. Data Science and AI"></label>
+      </div>
+      <button class="primary" id="chkBtn">Analyse</button>
+      <span id="chkMsg" class="muted"></span>
+    </form>
+    <div id="chkOut"></div>
+    <hr>
+    <h3>Already an applicant?</h3>
+    <form id="lookupForm" class="row"><input id="lookupRoll" placeholder="Roll number, e.g. AE22B004" required>
+      <button>Look up</button></form>
+    <div id="lookupOut"></div>
+  </div>
+</section>
+
+<section id="tab-jd" class="tab"><div class="narrow" id="jdBody"></div></section>
+</main>
+
+<aside id="drawer" hidden><div class="drawerbody" id="drawerBody"></div></aside>
+<script src="app.js"></script>
+</body>
+</html>
