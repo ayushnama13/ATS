@@ -4,7 +4,9 @@ __pycache__/
 .env
 data/cache.sqlite*
 data/companies/*/resumes/
-data/companies/*/resumes.zip
+data/companies/*/resumes*
+data/companies/*/_up.zip
+data/companies/*/_sheet.*
 data/companies/*/applicants.*
 data/uploads/
 out/
