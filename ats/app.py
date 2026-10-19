@@ -317,7 +317,15 @@ async def new_job(title: str = Form(...), jd_text: str = Form(""), jd_file: Uplo
         else:
             (d / "jd.txt").write_text(jd_text)
         if sheet:
-            (d / "applicants.tsv").write_bytes(await sheet.read())
+            tmp = d / ("_sheet" + Path(sheet.filename).suffix.lower())
+            tmp.write_bytes(await sheet.read())
+            try:
+                _, rows = ingest.parse_sheet(tmp)
+            except Exception as e:
+                raise HTTPException(400, f"applicant sheet: {e}")
+            if not rows:
+                raise HTTPException(400, "applicant sheet has no rows with a Roll Number")
+            tmp.rename(d / ("applicants" + tmp.suffix))
         used = set()
 
         def put(name, data):

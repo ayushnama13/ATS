@@ -24,14 +24,39 @@ def list_companies():
     return sorted(p.name for p in config.COMPANIES.iterdir() if p.is_dir())
 
 
+def _grid(path):
+    """Read a sheet as a list of string rows: real .xlsx, legacy .xls (via LibreOffice), or TSV/CSV text."""
+    path = Path(path)
+    head = path.read_bytes()[:8]
+    if head[:2] == b"PK" or head == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1":
+        if head[:2] != b"PK":
+            import subprocess, tempfile
+            with tempfile.TemporaryDirectory() as td:
+                subprocess.run(["soffice", "--headless", "--convert-to", "xlsx", "--outdir", td, str(path)],
+                               capture_output=True, timeout=120)
+                out = Path(td) / (path.stem + ".xlsx")
+                if not out.exists():
+                    raise ValueError("could not read this .xls file; save it as .xlsx or CSV")
+                return _grid(out)
+        import openpyxl
+        wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        ws = wb.active
+        return [["" if v is None else str(v).strip() for v in r] for r in ws.iter_rows(values_only=True)]
+    text = path.read_text("utf-8-sig", "ignore")
+    delim = "\t" if text.count("\t") >= text.count(",") else ","
+    return [[c.strip() for c in r] for r in csv.reader(text.splitlines(), delimiter=delim)]
+
+
 def parse_sheet(path):
-    """Placement-portal export: row 1 is a title, row 2 the header, then one row per student."""
-    lines = Path(path).read_text("utf-8", "ignore").splitlines()
-    title = lines[0].strip() if lines else ""
-    reader = csv.reader(lines[1:], delimiter="\t")
-    header = [h.strip() for h in next(reader)]
+    """Applicant sheet. The header row is the first one mentioning a roll number (portal exports put a title above it)."""
+    grid = _grid(path)
+    hi = next((i for i, r in enumerate(grid) if any("roll" in c.lower() for c in r)), None)
+    if hi is None:
+        raise ValueError("sheet has no 'Roll Number' column")
+    title = next((c for r in grid[:hi] for c in r if c), "")
+    header = [h.strip() for h in grid[hi]]
     rows = []
-    for r in reader:
+    for r in grid[hi + 1:]:
         if not any(c.strip() for c in r):
             continue
         d = dict(zip(header, (c.strip() for c in r)))
@@ -46,7 +71,7 @@ def parse_sheet(path):
             "roll": roll, "name": " ".join(d.get("Student Name", "").split()).title(),
             "email": d.get("Email Address", ""), "gender": d.get("Gender", ""),
             "program": d.get("Program Name", ""), "dept": d.get("Department Name", ""),
-            "spec": d.get("Sepecialization Name", ""), "cgpa": cgpa,
+            "spec": d.get("Sepecialization Name", d.get("Specialization Name", "")), "cgpa": cgpa,
             "status": d.get("Status", ""), "placed": d.get("Placed Status", ""),
         })
     return title, rows
@@ -97,8 +122,9 @@ def find_resume(resume_dir, roll):
 def load_company(slug, with_text=True, ocr=True):
     d = company_dir(slug)
     rdir = d / "resumes"
-    if (d / "applicants.tsv").exists():
-        title, rows = parse_sheet(d / "applicants.tsv")
+    sheet = next((d / f"applicants{e}" for e in (".tsv", ".xlsx", ".xls", ".csv") if (d / f"applicants{e}").exists()), None)
+    if sheet:
+        title, rows = parse_sheet(sheet)
     else:
         title, rows = _title(d), rows_from_resumes(rdir)
     seen, cands = set(), []

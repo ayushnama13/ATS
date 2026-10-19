@@ -57,3 +57,16 @@ def test_rank_orders_and_filters():
     assert [r["roll"] for r in rows] == ["A", "C", "B"] and rows[0]["rank"] == 1
     rows = scoring.rank(cs, fs, flt={"min_cgpa": 7})
     assert [r["roll"] for r in rows] == ["B"]
+
+
+def test_parse_sheet_xlsx_with_title_row(tmp_path):
+    import openpyxl
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Export title"])
+    ws.append(["Student Name", "Roll Number", "CGPA"])
+    ws.append(["ann lee", "cs22b001", 8.1])
+    p = tmp_path / "s.xlsx"
+    wb.save(p)
+    title, rows = ingest.parse_sheet(p)
+    assert title == "Export title" and rows[0]["roll"] == "CS22B001" and rows[0]["cgpa"] == 8.1
