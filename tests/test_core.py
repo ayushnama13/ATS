@@ -84,3 +84,26 @@ def test_search_keeps_global_rank():
     fs = [{"features": {"must_skill": v}, "detail": {}} for v in (1.0, 0.5, 0.8)]
     rows = scoring.rank(cs, fs, weights={"must_skill": 1}, flt={"search": "ayush"})
     assert [(r["roll"], r["rank"]) for r in rows] == [("B", 3)]
+
+
+def test_parse_dotenv_formats():
+    from ats.config import parse_dotenv
+    t = '﻿# c\r\nA=1\r\nexport B="two words" # note\r\nC=\'x\'\r\nD=val # trailing\r\nE=\r\nnoequals\r\n'
+    assert parse_dotenv(t) == {"A": "1", "B": "two words", "C": "x", "D": "val", "E": ""}
+
+
+def test_split_keys_ignores_placeholders_and_dupes():
+    from ats.config import _split_keys
+    assert _split_keys("a, b", "your-key-here", "a", None) == ["a", "b"]
+
+
+def test_load_dotenv_does_not_override_real_env(tmp_path, monkeypatch):
+    from ats.config import load_dotenv
+    f = tmp_path / ".env"
+    f.write_text("ZZ_TEST_A=file\nZZ_TEST_B=file\n")
+    monkeypatch.setenv("ZZ_TEST_A", "real")
+    monkeypatch.delenv("ZZ_TEST_B", raising=False)
+    assert load_dotenv(f) == f
+    import os
+    assert os.environ["ZZ_TEST_A"] == "real" and os.environ["ZZ_TEST_B"] == "file"
+    monkeypatch.delenv("ZZ_TEST_B", raising=False)

@@ -17,6 +17,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="ats")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("companies")
+    sub.add_parser("env", help="show which .env / API keys were loaded")
     for n in ("profile", "rubric", "rank", "embed"):
         p = sub.add_parser(n)
         p.add_argument("slug")
@@ -33,6 +34,13 @@ def main(argv=None):
     s.add_argument("--host", default="127.0.0.1")
     a = ap.parse_args(argv)
 
+    if a.cmd == "env":
+        from . import config
+        mask = lambda k: k[:4] + "…" + k[-4:] if len(k) > 10 else "***"
+        print("env file :", config.ENV_FILE or "none found (looked in project root and current dir)")
+        print("api keys :", ", ".join(mask(k) for k in config.GEMINI_API_KEYS) or "NONE - AI features disabled")
+        print("model    :", config.GEMINI_MODEL, "| embeddings:", config.GEMINI_EMBED_MODEL)
+        return
     if a.cmd == "companies":
         print("\n".join(ingest.list_companies()))
     elif a.cmd == "profile":

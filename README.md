@@ -4,7 +4,8 @@ Rank applicants against a job description (recruiter view) and let a candidate c
 
 ## Setup
     uv sync            # or: python -m venv .venv && pip install -e .
-    cp .env.example .env   # add GEMINI_API_KEY
+    cp .env.example .env   # then put your key after GEMINI_API_KEY=
+    python -m ats env      # shows which .env and keys were loaded (masked)
 Per-company data lives in `data/companies/<slug>/` (`jd.docx|pdf`, `applicants.tsv`, `resumes/`). It is git-ignored (PII).
 
 ## Use
@@ -28,3 +29,9 @@ Generation is limited to ~13 requests/min (resumes are batched 3 per request); e
 
 ## Tests
     python -m pytest tests
+
+## Configuration (.env)
+`.env` is read from the project root (or the current directory). Real environment variables take precedence over the file.
+It supports `export KEY=value`, quotes, inline `# comments`, and CRLF. Placeholder values are treated as "no key".
+`GEMINI_API_KEY` (or `GOOGLE_API_KEY`) sets one key; `GEMINI_API_KEYS=a,b,c` sets several, rotated on rate limits.
+See `.env.example` for every option.

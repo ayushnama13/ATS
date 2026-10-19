@@ -40,6 +40,18 @@ def _throttle(path):
         time.sleep(max(wait, 0.05))
 
 
+_key_i = 0
+
+
+def _next_key(bad=None):
+    """Current API key; pass the one that just got a 429 to rotate to the next (when there are several)."""
+    global _key_i
+    keys = config.GEMINI_API_KEYS
+    if bad is not None and len(keys) > 1 and keys[_key_i % len(keys)] == bad:
+        _key_i += 1
+    return keys[_key_i % len(keys)]
+
+
 def _post(path, body, timeout=120, retries=6):
     if not available():
         raise LLMError("GEMINI_API_KEY not set")
@@ -48,11 +60,15 @@ def _post(path, body, timeout=120, retries=6):
     for i in range(retries):
         _throttle(path)
         try:
-            r = httpx.post(url, json=body, params={"key": config.GEMINI_API_KEY}, timeout=timeout)
+            key = _next_key()
+            r = httpx.post(url, json=body, params={"key": key}, timeout=timeout)
             if r.status_code == 200:
                 return r.json()
             last = f"HTTP {r.status_code}: {r.text[:200]}"
             if r.status_code == 429:
+                if len(config.GEMINI_API_KEYS) > 1:
+                    _next_key(bad=key)    # another key has its own quota: retry at once
+                    continue
                 m = re.search(r"retry in ([\d.]+)s", r.text)
                 time.sleep(min(float(m.group(1)) + 1 if m else 30, 70))
                 continue
