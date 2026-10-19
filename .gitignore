@@ -5,6 +5,6 @@ __pycache__/
 data/cache.sqlite*
 data/companies/*/resumes/
 data/companies/*/resumes.zip
-data/companies/*/applicants.tsv
+data/companies/*/applicants.*
 data/uploads/
 out/
