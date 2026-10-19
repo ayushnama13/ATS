@@ -128,7 +128,7 @@ def candidate(slug: str, roll: str, weights: str = None, enabled: str = None, fi
     roll = roll.upper()
     w = json.loads(weights) if weights else None
     en = json.loads(enabled) if enabled else None
-    flt = json.loads(filters) if filters else None
+    flt = {k: v for k, v in json.loads(filters).items() if k != "search"} if filters else None
     rows = scoring.rank(st["comp"]["candidates"], st["feats"], w, en, flt)
     row = next((r for r in rows if r["roll"] == roll), None)
     if not row and flt:   # opened a candidate the current filters hide: rank among everyone instead

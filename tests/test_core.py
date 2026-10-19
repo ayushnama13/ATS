@@ -77,3 +77,10 @@ def test_tfidf_context_survives_tiny_pool():
     c = {"text": "python sql backend engineer", "roll": "A", "words": 4}
     ctx = Context([c], {"jd_text": "python sql", "keywords": []}, embeddings=None)
     assert len(ctx.tf_sims) == 1
+
+
+def test_search_keeps_global_rank():
+    cs = [_cand("A", 6.0, name="Zed"), _cand("B", 9.0, name="Ayush"), _cand("C", 7.0, name="Cy")]
+    fs = [{"features": {"must_skill": v}, "detail": {}} for v in (1.0, 0.5, 0.8)]
+    rows = scoring.rank(cs, fs, weights={"must_skill": 1}, flt={"search": "ayush"})
+    assert [(r["roll"], r["rank"]) for r in rows] == [("B", 3)]

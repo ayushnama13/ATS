@@ -38,11 +38,11 @@ def passes(c, flt):
         return False
     if flt.get("min_words") and c["words"] < flt["min_words"]:
         return False
-    if flt.get("search"):
-        q = flt["search"].lower()
-        if q not in (c["name"] + " " + c["roll"] + " " + c["dept"] + " " + c["spec"]).lower():
-            return False
     return True
+
+
+def _matches_search(r, q):
+    return q.lower() in (r["name"] + " " + r["roll"] + " " + r["dept"] + " " + r["spec"]).lower()
 
 
 def rank(candidates, feats, weights=None, enabled=None, flt=None):
@@ -61,4 +61,6 @@ def rank(candidates, feats, weights=None, enabled=None, flt=None):
     rows.sort(key=lambda r: (-r["score"], r["roll"]))
     for i, r in enumerate(rows, 1):
         r["rank"] = i
+    if flt.get("search"):   # search only narrows what is shown; ranks stay relative to the whole pool
+        rows = [r for r in rows if _matches_search(r, flt["search"])]
     return rows
