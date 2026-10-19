@@ -37,6 +37,12 @@ const store = {
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
 
+// Server errors may be JSON {detail} or plain text ("Internal Server Error"); never choke on either.
+async function errText(r) {
+  const t = await r.text();
+  try { const d = JSON.parse(t).detail; return typeof d === "string" ? d : JSON.stringify(d); } catch { return `${r.status} ${t.slice(0, 120) || r.statusText}`; }
+}
+
 // ---------- tabs / company ----------
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
   showTab(b.dataset.tab);
@@ -67,7 +73,7 @@ $("#newForm").onsubmit = async e => {
   $("#nwBtn").disabled = true; $("#nwMsg").textContent = "Uploading and reading resumes… (can take a minute)";
   try {
     const r = await fetch("/api/new-job", {method: "POST", body: fd});
-    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    if (!r.ok) throw new Error(await errText(r));
     const j = await r.json();
     $("#nwMsg").textContent = "";
     $("#newForm").reset();
@@ -248,7 +254,7 @@ $("#addResFile").onchange = async e => {
   const btn = $("#addResBtn"); btn.disabled = true; btn.textContent = "Adding…";
   try {
     const r = await fetch(`/api/companies/${S.slug}/resumes`, {method: "POST", body: fd});
-    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    if (!r.ok) throw new Error(await errText(r));
     const j = await r.json();
     await init(S.slug);
     $("#notice").hidden = false;

@@ -349,11 +349,15 @@ async def new_job(title: str = Form(...), jd_text: str = Form(""), jd_file: Uplo
             if (up.filename or "").lower().endswith(".zip"):
                 tmp = d / "_up.zip"
                 tmp.write_bytes(data)
-                with zipfile.ZipFile(tmp) as z:
-                    for m in z.infolist():
-                        if not m.is_dir() and not Path(m.filename).name.startswith((".", "_")):
-                            put(Path(m.filename).name, z.read(m))
-                tmp.unlink()
+                try:
+                    with zipfile.ZipFile(tmp) as z:
+                        for m in z.infolist():
+                            if not m.is_dir() and not Path(m.filename).name.startswith((".", "_")):
+                                put(Path(m.filename).name, z.read(m))
+                except zipfile.BadZipFile:
+                    raise HTTPException(400, f"{up.filename} is not a valid zip (corrupt or incomplete download?). Re-download it and try again.")
+                finally:
+                    tmp.unlink(missing_ok=True)
             else:
                 put(Path(up.filename or "resume.pdf").name, data)
         if not used:
@@ -395,11 +399,15 @@ async def add_resumes(slug: str, resumes: list[UploadFile] = File(...)):
         if name.lower().endswith(".zip"):
             tmp = d / "_up.zip"
             tmp.write_bytes(data)
-            with zipfile.ZipFile(tmp) as z:
-                for m in z.infolist():
-                    if not m.is_dir() and not Path(m.filename).name.startswith((".", "_")):
-                        put(Path(m.filename).name, z.read(m))
-            tmp.unlink()
+            try:
+                with zipfile.ZipFile(tmp) as z:
+                    for m in z.infolist():
+                        if not m.is_dir() and not Path(m.filename).name.startswith((".", "_")):
+                            put(Path(m.filename).name, z.read(m))
+            except zipfile.BadZipFile:
+                raise HTTPException(400, f"{name} is not a valid zip (corrupt or incomplete download?). Re-download it and try again.")
+            finally:
+                tmp.unlink(missing_ok=True)
         else:
             put(name, data)
     if not added:
