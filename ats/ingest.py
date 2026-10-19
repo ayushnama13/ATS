@@ -1,6 +1,7 @@
 """Load a company folder: applicant sheet (TSV in .xls clothing) + resumes + JD."""
 import csv
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -51,18 +52,55 @@ def parse_sheet(path):
     return title, rows
 
 
+def _title(d):
+    t = d / "title.txt"
+    return t.read_text().strip() if t.exists() else d.name
+
+
+def rows_from_resumes(rdir):
+    """No applicant sheet: one candidate per resume file, named after the file."""
+    rows = []
+    for f in sorted(Path(rdir).glob("*")):
+        if f.suffix.lower() not in RESUME_EXTS:
+            continue
+        name = " ".join(re.sub(r"[_\-.]+|\bresume\b|\bcv\b", " ", f.stem, flags=re.I).split()).title()
+        rows.append({"roll": f.stem.upper(), "name": name or f.stem, "email": "", "gender": "", "program": "",
+                     "dept": "", "spec": "", "cgpa": None, "status": "", "placed": "", "auto_name": True})
+    return rows
+
+
+_NOT_NAME = {"education", "resume", "curriculum", "vitae", "cv", "summary", "experience", "skills", "projects",
+             "objective", "profile", "contact", "achievements", "of", "and"}
+
+
+def _name_from_text(text):
+    """Resumes put the candidate's name on the first line; accept it only if it looks like a name."""
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        line = re.split(r"\s[|\-–•·,]\s|\s{3,}|\d|@", line)[0]
+        words = re.sub(r"^name\b[:\s]*", "", line.strip(), flags=re.I).split()
+        if 2 <= len(words) <= 4 and not {w.lower() for w in words} & _NOT_NAME and all(re.fullmatch(r"[A-Za-z.'-]+", w) for w in words):
+            return " ".join(words).title()
+        return None
+    return None
+
+
 def find_resume(resume_dir, roll):
-    for ext in RESUME_EXTS:
-        p = resume_dir / f"{roll}{ext}"
-        if p.exists():
-            return p
+    for f in Path(resume_dir).glob("*"):
+        if f.suffix.lower() in RESUME_EXTS and f.stem.upper() == roll:
+            return f
     return None
 
 
 def load_company(slug, with_text=True, ocr=True):
     d = company_dir(slug)
-    title, rows = parse_sheet(d / "applicants.tsv")
     rdir = d / "resumes"
+    if (d / "applicants.tsv").exists():
+        title, rows = parse_sheet(d / "applicants.tsv")
+    else:
+        title, rows = _title(d), rows_from_resumes(rdir)
     seen, cands = set(), []
     for r in rows:
         if r["roll"] in seen:
@@ -82,6 +120,8 @@ def load_company(slug, with_text=True, ocr=True):
             e = extract(f, allow_ocr=ocr)
             c.update(text=e["text"], pages=e["pages"], words=e["words"], ocr=e.get("ocr", False),
                      error=e.get("error"))
+            if c.get("auto_name"):
+                c["name"] = _name_from_text(e["text"]) or c["name"]
 
     with ThreadPoolExecutor(max_workers=8) as ex:
         list(ex.map(work, cands))

@@ -10,6 +10,7 @@
 <header>
   <div class="brand">ATS<span>scanner</span></div>
   <nav id="tabs">
+    <button data-tab="new">＋ New job</button>
     <button data-tab="rank" class="on">Rank applicants</button>
     <button data-tab="check">Check a resume</button>
     <button data-tab="jd">JD profile</button>
@@ -18,6 +19,22 @@
 </header>
 
 <main>
+<section id="tab-new" class="tab">
+  <div class="narrow">
+    <h2>Rank resumes for a job description</h2>
+    <p class="muted">Add the JD and the resumes. Every resume is scored against the JD and ranked; you can then tune the factors and weights.</p>
+    <form id="newForm" class="card">
+      <label class="f">Job title / name <input id="nwTitle" placeholder="e.g. Data Analyst – Acme" required></label>
+      <label class="f">Job description (paste text) <textarea id="nwJdText" rows="7" placeholder="Paste the JD here…"></textarea></label>
+      <label class="f">…or upload the JD file (PDF/DOCX/TXT) <input type="file" id="nwJdFile" accept=".pdf,.docx,.doc,.txt"></label>
+      <label class="f">Resumes (select many PDF/DOCX files, or one ZIP) <input type="file" id="nwRes" multiple accept=".pdf,.docx,.doc,.zip" required></label>
+      <label class="f">Applicant sheet (optional TSV with CGPA/branch; resume files must be named by roll number) <input type="file" id="nwSheet" accept=".tsv,.xls,.txt"></label>
+      <button class="primary" id="nwBtn">Create &amp; rank</button>
+      <span id="nwMsg" class="muted"></span>
+    </form>
+  </div>
+</section>
+
 <section id="tab-rank" class="tab on">
   <aside class="panel">
     <div class="row between"><h3>Ranking factors</h3>

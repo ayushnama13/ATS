@@ -1,6 +1,9 @@
 """FastAPI app: recruiter ranking, candidate check, JD profile editing, xlsx export."""
 import json
 import os
+import re
+import shutil
+import zipfile
 import threading
 import uuid
 from pathlib import Path
@@ -282,6 +285,84 @@ async def check(file: UploadFile = File(...), slug: str = Form(...), cgpa: float
         except Exception:
             pass
     return out
+
+
+def _slugify(title):
+    base = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:40] or "job"
+    slug, n = base, 2
+    while (config.COMPANIES / slug).exists():
+        slug, n = f"{base}-{n}", n + 1
+    return slug
+
+
+@app.post("/api/new-job")
+async def new_job(title: str = Form(...), jd_text: str = Form(""), jd_file: UploadFile = File(None),
+                  resumes: list[UploadFile] = File(...), sheet: UploadFile = File(None)):
+    """Recruiter flow: paste/upload a JD plus resumes (files or a zip) and get a rankable job."""
+    jd_file = jd_file if jd_file and jd_file.filename else None
+    sheet = sheet if sheet and sheet.filename else None
+    if not jd_text.strip() and not jd_file:
+        raise HTTPException(400, "provide the job description as text or a file")
+    slug = _slugify(title)
+    d = config.COMPANIES / slug
+    rdir = d / "resumes"
+    rdir.mkdir(parents=True)
+    try:
+        (d / "title.txt").write_text(title.strip())
+        if jd_file:
+            ext = Path(jd_file.filename).suffix.lower()
+            if ext not in (".pdf", ".docx", ".doc", ".txt"):
+                raise HTTPException(400, "JD must be PDF, DOCX, DOC or TXT")
+            (d / f"jd{ext}").write_bytes(await jd_file.read())
+        else:
+            (d / "jd.txt").write_text(jd_text)
+        if sheet:
+            (d / "applicants.tsv").write_bytes(await sheet.read())
+        used = set()
+
+        def put(name, data):
+            stem, ext = Path(name).stem, Path(name).suffix.lower()
+            if ext not in ingest.RESUME_EXTS:
+                return
+            out, n = stem, 2
+            while out.upper() in used:
+                out, n = f"{stem}-{n}", n + 1
+            used.add(out.upper())
+            (rdir / f"{out}{ext}").write_bytes(data)
+
+        for up in resumes:
+            data = await up.read()
+            if (up.filename or "").lower().endswith(".zip"):
+                tmp = d / "_up.zip"
+                tmp.write_bytes(data)
+                with zipfile.ZipFile(tmp) as z:
+                    for m in z.infolist():
+                        if not m.is_dir() and not Path(m.filename).name.startswith((".", "_")):
+                            put(Path(m.filename).name, z.read(m))
+                tmp.unlink()
+            else:
+                put(Path(up.filename or "resume.pdf").name, data)
+        if not used:
+            raise HTTPException(400, "no PDF/DOCX/DOC resumes found in the upload")
+        with _lock:
+            _state.pop(slug, None)
+        _company(slug)
+    except Exception:
+        shutil.rmtree(d, ignore_errors=True)
+        _state.pop(slug, None)
+        raise
+    return {"slug": slug, "resumes": len(used)}
+
+
+@app.delete("/api/companies/{slug}")
+def delete_job(slug: str):
+    d = ingest.company_dir(slug)
+    if not (d / "title.txt").exists():
+        raise HTTPException(403, "only jobs created from the UI can be deleted")
+    shutil.rmtree(d)
+    with _lock:
+        _state.pop(slug, None)
+    return {"ok": True}
 
 
 app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")

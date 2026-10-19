@@ -13,9 +13,11 @@ Per-company data lives in `data/companies/<slug>/` (`jd.docx|pdf`, `applicants.t
     python -m ats rubric accenture           # Gemini rubric review of every resume (cached)
     python -m ats embed accenture            # semantic embeddings (slow on free tier, cached)
     python -m ats rank accenture --out out.xlsx --top 50
-    python -m ats serve --port 8765          # dashboard
+    python -m ats serve --port 8765          # dashboard (use .venv/bin/python if `python` is missing)
 
-The dashboard has three tabs: rank applicants (every factor can be toggled and weighted, with filters, presets, Excel export), check a resume, and edit the JD profile.
+**Your own JD:** open the dashboard, click **＋ New job**, paste or upload a JD and upload resumes (many files or one ZIP; an applicant sheet is optional). It builds the JD profile, ranks every resume, and starts the AI review of the top 30.
+
+The dashboard has these tabs: new job, rank applicants (every factor can be toggled and weighted, with filters, presets, Excel export), check a resume, and edit the JD profile.
 
 ## Scoring
 Weighted mean over enabled factors; a factor that does not apply to a candidate (e.g. no CGPA) drops out rather than counting as zero.

@@ -39,17 +39,43 @@ const store = {
 
 // ---------- tabs / company ----------
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
-  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
-  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.id === "tab-" + b.dataset.tab));
-  if (b.dataset.tab === "jd") renderJD();
+  showTab(b.dataset.tab);
 });
 
-async function init() {
-  const cs = await (await api("/api/companies")).json();
-  $("#company").innerHTML = cs.map(c => `<option value="${esc(c.slug)}">${esc(c.slug)} — ${esc(c.role)} (${c.candidates})</option>`).join("");
-  $("#company").onchange = () => loadCompany($("#company").value);
-  await loadCompany(store.get("slug") && cs.some(c => c.slug === store.get("slug")) ? store.get("slug") : cs[0].slug);
+function showTab(name) {
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x.dataset.tab === name));
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.id === "tab-" + name));
+  if (name === "jd") renderJD();
 }
+
+async function init(pick) {
+  const cs = await (await api("/api/companies")).json();
+  $("#company").innerHTML = cs.map(c => `<option value="${esc(c.slug)}">${esc(c.title && c.title !== c.slug ? c.title : c.slug)} — ${esc(c.role)} (${c.candidates})</option>`).join("");
+  $("#company").onchange = () => loadCompany($("#company").value);
+  const want = pick || store.get("slug");
+  await loadCompany(cs.some(c => c.slug === want) ? want : cs[0].slug);
+}
+
+$("#newForm").onsubmit = async e => {
+  e.preventDefault();
+  const fd = new FormData();
+  fd.append("title", $("#nwTitle").value);
+  fd.append("jd_text", $("#nwJdText").value);
+  if ($("#nwJdFile").files[0]) fd.append("jd_file", $("#nwJdFile").files[0]);
+  for (const f of $("#nwRes").files) fd.append("resumes", f);
+  if ($("#nwSheet").files[0]) fd.append("sheet", $("#nwSheet").files[0]);
+  $("#nwBtn").disabled = true; $("#nwMsg").textContent = "Uploading and reading resumes… (can take a minute)";
+  try {
+    const r = await fetch("/api/new-job", {method: "POST", body: fd});
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    const j = await r.json();
+    $("#nwMsg").textContent = "";
+    $("#newForm").reset();
+    await init(j.slug); showTab("rank");
+    if (S.meta && $("#rubricRun")) $("#rubricRun").click();   // AI review of the top candidates
+  } catch (err) { $("#nwMsg").textContent = "Failed: " + err.message; }
+  $("#nwBtn").disabled = false;
+};
 
 async function loadCompany(slug) {
   S.slug = slug; $("#company").value = slug; store.set("slug", slug);
