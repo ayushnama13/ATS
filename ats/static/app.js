@@ -174,6 +174,7 @@ const body = () => ({weights: S.weights, enabled: S.enabled, filters: collectFil
 async function refreshRank() {
   const d = await (await jpost(`/api/companies/${S.slug}/rank`, {...body(), limit: 600})).json();
   S.rows = d.rows;
+  if (S.openRoll && !$("#drawer").hidden) openDrawer(S.openRoll);   // keep an open candidate panel in sync
   $("#count").textContent = `${d.total} of ${S.meta ? S.meta.profile && "" : ""}${d.total === S.rows.length ? "" : ` (showing ${S.rows.length})`} applicants`.replace(" of  ", " ");
   const scored = d.rows.filter(r => r.summary).length;
   $("#rubricInfo").textContent = scored ? `${scored} of the ranked candidates have an AI review.` : "No AI reviews yet. Run it for the shortlist; it uses Gemini and takes a few minutes.";
@@ -192,7 +193,8 @@ async function refreshRank() {
 
 // ---------- drawer ----------
 async function openDrawer(roll) {
-  const d = await (await api(`/api/companies/${S.slug}/candidate/${roll}?weights=${encodeURIComponent(JSON.stringify(S.weights))}`)).json();
+  S.openRoll = roll;
+  const d = await (await api(`/api/companies/${S.slug}/candidate/${roll}?${new URLSearchParams({weights: JSON.stringify(S.weights), enabled: JSON.stringify(S.enabled), filters: JSON.stringify(collectFilters())})}`)).json();
   const rub = d.detail.rubric, fs = S.meta.factors;
   const tags = (arr, cls) => arr.map(x => `<span class="tag ${cls}">${esc(x)}</span>`).join("") || `<span class="muted">none</span>`;
   $("#drawerBody").innerHTML = `
@@ -213,7 +215,9 @@ async function openDrawer(roll) {
     <h3>Score breakdown</h3><div class="bars">${fs.map((f, i) => {
       const p = d.parts[f], v = d.features[f];
       return `<div class="brow ${p.weight ? "" : "dim"}"><span><i class="dot" style="background:${hue(i)};display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px"></i>${esc(FACTOR_INFO[f][0])}</span>
-        <div class="meter"><i style="width:${v == null ? 0 : v * 100}%"></i></div><span class="num">${v == null ? "n/a" : (v * 100).toFixed(0)}</span></div>`; }).join("")}</div>
+        <div class="meter"><i style="width:${v == null ? 0 : v * 100}%"></i></div>
+        <span class="num" title="${v == null ? "does not apply" : "raw " + (v * 100).toFixed(0) + "/100"}">${!p.weight ? (v == null ? "n/a" : "off") : "+" + p.points.toFixed(1)}</span></div>`; }).join("")}</div>
+    <div class="sub">Right column = points each factor adds to the score under your current weights (off / n/a = not counted). Bar = raw 0–100 value.</div>
     <h3>Resume format</h3>${d.detail.format_flags.length ? tags(d.detail.format_flags, "warn") : `<span class="tag ok">no format issues</span>`}
     <div class="sub">${d.words} words · ${d.pages} page(s)${d.ocr ? " · text recovered via OCR" : ""}</div>`;
   $("#drawer").hidden = false;

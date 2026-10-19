@@ -122,12 +122,18 @@ def rank(slug: str, body: dict = Body(default={})):
 
 
 @app.get("/api/companies/{slug}/candidate/{roll}")
-def candidate(slug: str, roll: str, weights: str = None):
+def candidate(slug: str, roll: str, weights: str = None, enabled: str = None, filters: str = None):
+    """Score breakdown for one candidate under the caller's current weights/enabled factors/filters."""
     st = _company(slug)
     roll = roll.upper()
     w = json.loads(weights) if weights else None
-    rows = scoring.rank(st["comp"]["candidates"], st["feats"], w)
+    en = json.loads(enabled) if enabled else None
+    flt = json.loads(filters) if filters else None
+    rows = scoring.rank(st["comp"]["candidates"], st["feats"], w, en, flt)
     row = next((r for r in rows if r["roll"] == roll), None)
+    if not row and flt:   # opened a candidate the current filters hide: rank among everyone instead
+        rows = scoring.rank(st["comp"]["candidates"], st["feats"], w, en)
+        row = next((r for r in rows if r["roll"] == roll), None)
     if not row:
         raise HTTPException(404, "candidate not found")
     c = next(c for c in st["comp"]["candidates"] if c["roll"] == roll)
