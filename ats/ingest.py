@@ -114,7 +114,7 @@ def _name_from_text(text):
 
 def find_resume(resume_dir, roll):
     for f in Path(resume_dir).glob("*"):
-        if f.suffix.lower() in RESUME_EXTS and f.stem.upper() == roll:
+        if f.suffix.lower() in RESUME_EXTS and f.stem.upper() == roll and f.exists():   # exists(): skip dangling links
             return f
     return None
 

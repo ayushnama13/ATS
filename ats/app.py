@@ -12,7 +12,7 @@ from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import config, export, extract, features, ingest, jd, llm, rubric, scoring
+from . import config, export, extract, features, ingest, jd, llm, resstore, rubric, scoring
 
 app = FastAPI(title="ATS Scanner")
 STATIC = Path(__file__).parent / "static"
@@ -139,7 +139,8 @@ def candidate(slug: str, roll: str, weights: str = None, enabled: str = None, fi
     c = next(c for c in st["comp"]["candidates"] if c["roll"] == roll)
     return {**row, "total": len(rows), "percentile": round(100 * (1 - (row["rank"] - 1) / len(rows)), 1),
             "email": c["email"], "words": c["words"], "pages": c["pages"], "ocr": c["ocr"],
-            "resume_file": c["resume_file"], "features": next(f for f in st["feats"] if f["roll"] == roll)["features"]}
+            "resume_file": c["resume_file"], "versions": resstore.versions(roll),
+            "active_version": resstore.linked_hash(slug, roll), "features": next(f for f in st["feats"] if f["roll"] == roll)["features"]}
 
 
 @app.get("/api/companies/{slug}/resume/{roll}")
@@ -301,6 +302,44 @@ def _slugify(title):
     return slug
 
 
+async def _store_uploads(slug, uploads):
+    """Save uploaded resumes (files or zips) into the central store and link them into the job."""
+    chosen, skipped, new_files, reused = {}, [], 0, 0
+
+    def put(name, data):
+        nonlocal new_files, reused
+        if Path(name).suffix.lower() not in resstore.EXTS:
+            skipped.append(name)
+            return
+        roll, h, _, created = resstore.add(data, name)
+        chosen[roll] = h              # if a person appears twice in one upload, the last one is used
+        new_files += created
+        reused += not created
+
+    scratch = config.UPLOADS
+    scratch.mkdir(parents=True, exist_ok=True)
+    for up in uploads:
+        data = await up.read()
+        name = Path(up.filename or "resume.pdf").name
+        if name.lower().endswith(".zip"):
+            tmp = scratch / f"{uuid.uuid4().hex}.zip"
+            tmp.write_bytes(data)
+            try:
+                with zipfile.ZipFile(tmp) as z:
+                    for m in z.infolist():
+                        if not m.is_dir() and not Path(m.filename).name.startswith((".", "_")):
+                            put(Path(m.filename).name, z.read(m))
+            except zipfile.BadZipFile:
+                raise HTTPException(400, f"{name} is not a valid zip (corrupt or incomplete download?). Re-download it and try again.")
+            finally:
+                tmp.unlink(missing_ok=True)
+        else:
+            put(name, data)
+    for roll, h in chosen.items():
+        resstore.link(slug, roll, h)
+    return {"added": list(chosen), "skipped": skipped, "new_files": new_files, "already_stored": reused}
+
+
 @app.post("/api/new-job")
 async def new_job(title: str = Form(...), jd_text: str = Form(""), jd_file: UploadFile = File(None),
                   resumes: list[UploadFile] = File(...), sheet: UploadFile = File(None)):
@@ -311,8 +350,7 @@ async def new_job(title: str = Form(...), jd_text: str = Form(""), jd_file: Uplo
         raise HTTPException(400, "provide the job description as text or a file")
     slug = _slugify(title)
     d = config.COMPANIES / slug
-    rdir = d / "resumes"
-    rdir.mkdir(parents=True)
+    (d / "resumes").mkdir(parents=True)
     try:
         (d / "title.txt").write_text(title.strip())
         if jd_file:
@@ -332,92 +370,101 @@ async def new_job(title: str = Form(...), jd_text: str = Form(""), jd_file: Uplo
             if not rows:
                 raise HTTPException(400, "applicant sheet has no rows with a Roll Number")
             tmp.rename(d / ("applicants" + tmp.suffix))
-        used = set()
-
-        def put(name, data):
-            stem, ext = Path(name).stem, Path(name).suffix.lower()
-            if ext not in ingest.RESUME_EXTS:
-                return
-            out, n = stem, 2
-            while out.upper() in used:
-                out, n = f"{stem}-{n}", n + 1
-            used.add(out.upper())
-            (rdir / f"{out}{ext}").write_bytes(data)
-
-        for up in resumes:
-            data = await up.read()
-            if (up.filename or "").lower().endswith(".zip"):
-                tmp = d / "_up.zip"
-                tmp.write_bytes(data)
-                try:
-                    with zipfile.ZipFile(tmp) as z:
-                        for m in z.infolist():
-                            if not m.is_dir() and not Path(m.filename).name.startswith((".", "_")):
-                                put(Path(m.filename).name, z.read(m))
-                except zipfile.BadZipFile:
-                    raise HTTPException(400, f"{up.filename} is not a valid zip (corrupt or incomplete download?). Re-download it and try again.")
-                finally:
-                    tmp.unlink(missing_ok=True)
-            else:
-                put(Path(up.filename or "resume.pdf").name, data)
-        if not used:
+        res = await _store_uploads(slug, resumes)
+        if not res["added"]:
             raise HTTPException(400, "no PDF/DOCX/DOC resumes found in the upload")
         with _lock:
             _state.pop(slug, None)
         _company(slug)
     except Exception:
-        shutil.rmtree(d, ignore_errors=True)
+        shutil.rmtree(d, ignore_errors=True)   # removes only the job's symlinks; stored resumes stay
         _state.pop(slug, None)
         raise
-    return {"slug": slug, "resumes": len(used)}
+    return {"slug": slug, "resumes": len(res["added"]), **res}
 
 
-@app.post("/api/companies/{slug}/resumes")
-async def add_resumes(slug: str, resumes: list[UploadFile] = File(...)):
-    """Add individual resumes (or a zip) to an existing job without recreating it."""
-    d = ingest.company_dir(slug)
-    rdir = d / "resumes"
-    rdir.mkdir(exist_ok=True)
-    taken = {f.stem.upper() for f in rdir.glob("*")}
-    added, skipped = [], []
-
-    def put(name, data):
-        stem, ext = Path(name).stem, Path(name).suffix.lower()
-        if ext not in ingest.RESUME_EXTS:
-            skipped.append(name)
-            return
-        out, n = stem, 2
-        while out.upper() in taken:
-            out, n = f"{stem}-{n}", n + 1
-        taken.add(out.upper())
-        (rdir / f"{out}{ext}").write_bytes(data)
-        added.append(out.upper())
-
-    for up in resumes:
-        data = await up.read()
-        name = Path(up.filename or "resume.pdf").name
-        if name.lower().endswith(".zip"):
-            tmp = d / "_up.zip"
-            tmp.write_bytes(data)
-            try:
-                with zipfile.ZipFile(tmp) as z:
-                    for m in z.infolist():
-                        if not m.is_dir() and not Path(m.filename).name.startswith((".", "_")):
-                            put(Path(m.filename).name, z.read(m))
-            except zipfile.BadZipFile:
-                raise HTTPException(400, f"{name} is not a valid zip (corrupt or incomplete download?). Re-download it and try again.")
-            finally:
-                tmp.unlink(missing_ok=True)
-        else:
-            put(name, data)
-    if not added:
-        raise HTTPException(400, "no PDF/DOCX/DOC resumes in the upload")
+def _refresh_after_resume_change(slug):
     with _lock:
         _state.pop(slug, None)
         st = _company(slug)
     if llm.available():
         _warm_embeddings(slug)   # new resumes need embeddings; semantic is skipped until they exist
-    return {"added": added, "skipped": skipped, "total": len(st["comp"]["candidates"])}
+    return st
+
+
+@app.post("/api/companies/{slug}/resumes")
+async def add_resumes(slug: str, resumes: list[UploadFile] = File(...)):
+    """Add individual resumes (or a zip) to an existing job."""
+    ingest.company_dir(slug)
+    res = await _store_uploads(slug, resumes)
+    if not res["added"]:
+        raise HTTPException(400, "no PDF/DOCX/DOC resumes in the upload")
+    st = _refresh_after_resume_change(slug)
+    return {**res, "total": len(st["comp"]["candidates"])}
+
+
+@app.get("/api/people")
+def people(q: str = "", limit: int = 50):
+    """Everyone in the resume store: id, best-known name, how many versions, and which jobs they applied to."""
+    names, jobs = {}, {}
+    for slug in ingest.list_companies():
+        for c in _company(slug)["comp"]["candidates"]:
+            if c["resume_file"]:
+                if c["name"] and not c.get("auto_name"):
+                    names[c["roll"]] = c["name"]
+                else:
+                    names.setdefault(c["roll"], c["name"])
+                jobs.setdefault(c["roll"], []).append(slug)
+    out, ql = [], q.strip().lower()
+    for d in sorted(resstore.STORE.iterdir()) if resstore.STORE.exists() else []:
+        if not d.is_dir():
+            continue
+        roll = d.name
+        name = names.get(roll, "")
+        if ql and ql not in roll.lower() and ql not in name.lower():
+            continue
+        vs = resstore.versions(roll)
+        if vs:
+            out.append({"roll": roll, "name": name, "versions": len(vs), "jobs": jobs.get(roll, [])})
+    return {"total": len(out), "people": out[:limit]}
+
+
+@app.get("/api/people/{roll}")
+def person(roll: str):
+    vs = resstore.versions(roll.upper())
+    if not vs:
+        raise HTTPException(404, "no stored resume for that id")
+    return {"roll": roll.upper(), "versions": vs}
+
+
+@app.post("/api/companies/{slug}/link")
+def link_people(slug: str, body: dict = Body(...)):
+    """Add people already in the store to this job (no upload). body: {rolls: [..]} or {roll, hash}."""
+    ingest.company_dir(slug)
+    items = body.get("items") or [{"roll": r} for r in body.get("rolls", [])]
+    if not items:
+        raise HTTPException(400, "choose at least one person")
+    added = []
+    for it in items:
+        try:
+            resstore.link(slug, it["roll"].upper(), it.get("hash"))
+            added.append(it["roll"].upper())
+        except FileNotFoundError as e:
+            raise HTTPException(404, str(e))
+    st = _refresh_after_resume_change(slug)
+    return {"added": added, "total": len(st["comp"]["candidates"])}
+
+
+@app.put("/api/companies/{slug}/resume/{roll}/version")
+def set_version(slug: str, roll: str, body: dict = Body(...)):
+    """Choose which stored version of a person's resume this job uses."""
+    ingest.company_dir(slug)
+    try:
+        resstore.link(slug, roll.upper(), body.get("hash"))
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e))
+    _refresh_after_resume_change(slug)
+    return {"ok": True}
 
 
 @app.delete("/api/companies/{slug}")

@@ -210,6 +210,8 @@ async function openDrawer(roll) {
     <div class="kpis" style="margin:14px 0"><div><span>Score</span><div class="big">${d.score.toFixed(1)}</div></div>
       <div><span>Rank</span><b>#${d.rank}</b> / ${d.total}</div><div><span>Percentile</span><b>top ${(100 - d.percentile + 0.1).toFixed(0)}%</b></div></div>
     <a href="/api/companies/${S.slug}/resume/${esc(d.roll)}" target="_blank">Open resume ↗</a>
+    ${(d.versions || []).length > 1 ? `<div class="row" style="margin:8px 0"><span class="muted">Resume version used</span>
+      <select id="verSel">${d.versions.map((v, i) => `<option value="${v.hash}" ${v.hash === d.active_version ? "selected" : ""}>${i === 0 ? "newest" : "older"} · ${esc((v.names[0] || v.file))} · ${(v.size / 1024).toFixed(0)} KB</option>`).join("")}</select></div>` : ""}
     ${rub ? `<h3>AI review <span class="muted">(${rub.fit_score}/100)</span></h3><p>${esc(rub.summary)}</p>
       ${(rub.competency_scores || []).map(c => `<div class="comp"><b>${esc(c.score)}/10</b> ${esc(c.name)}<div class="sub">${esc(c.evidence)}</div></div>`).join("")}
       <div><b>Strengths</b>${tags(rub.strengths || [], "ok")}</div><div><b>Gaps</b>${tags(rub.gaps || [], "warn")}</div>
@@ -227,6 +229,11 @@ async function openDrawer(roll) {
     <h3>Resume format</h3>${d.detail.format_flags.length ? tags(d.detail.format_flags, "warn") : `<span class="tag ok">no format issues</span>`}
     <div class="sub">${d.words} words · ${d.pages} page(s)${d.ocr ? " · text recovered via OCR" : ""}</div>`;
   $("#drawer").hidden = false;
+  const vs = $("#verSel");
+  if (vs) vs.onchange = async () => {
+    await jpost(`/api/companies/${S.slug}/resume/${d.roll}/version`, {hash: vs.value}, "PUT");
+    await refreshRank(); openDrawer(d.roll);
+  };
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape") $("#drawer").hidden = true; });
 
@@ -246,21 +253,62 @@ $("#rubricRun").onclick = async () => {
   } catch (e) { alert(e.message); }
   btn.disabled = false; $("#rubricBar").hidden = true; refreshRank();
 };
-$("#addResBtn").onclick = () => $("#addResFile").click();
-$("#addResFile").onchange = async e => {
-  const files = [...e.target.files]; e.target.value = "";
-  if (!files.length) return;
+// ---------- add resumes: upload, or pick people already in the database ----------
+const dlg = $("#addDlg");
+function addMode(m) {
+  document.querySelectorAll("#addTabs button").forEach(x => x.classList.toggle("on", x.dataset.m === m));
+  $("#addUpload").hidden = m !== "upload"; $("#addDb").hidden = m !== "db";
+  if (m === "db") loadPeople();
+}
+document.querySelectorAll("#addTabs button").forEach(b => b.onclick = () => addMode(b.dataset.m));
+$("#addResBtn").onclick = () => { $("#addUpMsg").textContent = ""; $("#dbMsg").textContent = ""; addMode("upload"); dlg.showModal(); };
+$("#addClose").onclick = () => dlg.close();
+
+async function addDone(j, extra) {
+  dlg.close();
+  await init(S.slug);
+  $("#notice").hidden = false;
+  $("#notice").textContent = `Added ${j.added.length} resume(s)${extra || ""}. Run the AI review to score them.`;
+}
+
+$("#addUpBtn").onclick = async () => {
+  const files = [...$("#addResFile").files];
+  if (!files.length) { $("#addUpMsg").textContent = "Choose at least one file."; return; }
   const fd = new FormData(); files.forEach(f => fd.append("resumes", f));
-  const btn = $("#addResBtn"); btn.disabled = true; btn.textContent = "Adding…";
+  $("#addUpBtn").disabled = true; $("#addUpMsg").textContent = "Uploading…";
   try {
     const r = await fetch(`/api/companies/${S.slug}/resumes`, {method: "POST", body: fd});
     if (!r.ok) throw new Error(await errText(r));
     const j = await r.json();
-    await init(S.slug);
-    $("#notice").hidden = false;
-    $("#notice").textContent = `Added ${j.added.length} resume(s)${j.skipped.length ? `, skipped ${j.skipped.length} unsupported` : ""}. Run the AI review to score them.`;
-  } catch (err) { alert("Could not add resumes: " + err.message); }
-  btn.disabled = false; btn.textContent = "＋ Add resumes";
+    $("#addResFile").value = "";
+    await addDone(j, ` (${j.new_files} new file(s), ${j.already_stored} already stored${j.skipped.length ? `, ${j.skipped.length} unsupported skipped` : ""})`);
+  } catch (err) { $("#addUpMsg").textContent = "Failed: " + err.message; }
+  $("#addUpBtn").disabled = false;
+};
+
+let dbTimer = null;
+$("#dbSearch").oninput = () => { clearTimeout(dbTimer); dbTimer = setTimeout(loadPeople, 250); };
+async function loadPeople() {
+  const r = await api(`/api/people?limit=60&q=${encodeURIComponent($("#dbSearch").value)}`);
+  const d = await r.json();
+  $("#dbList").innerHTML = d.people.map(p => {
+    const inJob = p.jobs.includes(S.slug);
+    return `<label class="${inJob ? "in" : ""}"><input type="checkbox" value="${esc(p.roll)}" ${inJob ? "disabled" : ""}>
+      <span><b>${esc(p.name || p.roll)}</b> <span class="sub">${esc(p.roll)}${p.versions > 1 ? ` · ${p.versions} versions` : ""}</span></span>
+      <span class="sub">${inJob ? "already in this job" : esc(p.jobs.join(", "))}</span></label>`;
+  }).join("") || `<div class="muted" style="padding:10px">No one matches.</div>`;
+  $("#dbMsg").textContent = d.total > d.people.length ? `Showing ${d.people.length} of ${d.total}; search to narrow.` : "";
+}
+$("#dbAddBtn").onclick = async () => {
+  const rolls = [...document.querySelectorAll("#dbList input:checked")].map(i => i.value);
+  if (!rolls.length) { $("#dbMsg").textContent = "Tick at least one person."; return; }
+  $("#dbAddBtn").disabled = true;
+  try {
+    const r = await jpost(`/api/companies/${S.slug}/link`, {rolls});
+    if (!r.ok) throw new Error(await errText(r));
+    await addDone(await r.json(), " from the database");
+  } catch (err) { $("#dbMsg").textContent = "Failed: " + err.message; }
+  $("#dbAddBtn").disabled = false;
 };
 
 $("#exportBtn").onclick = async () => {

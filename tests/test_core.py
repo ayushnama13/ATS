@@ -107,3 +107,20 @@ def test_load_dotenv_does_not_override_real_env(tmp_path, monkeypatch):
     import os
     assert os.environ["ZZ_TEST_A"] == "real" and os.environ["ZZ_TEST_B"] == "file"
     monkeypatch.delenv("ZZ_TEST_B", raising=False)
+
+
+def test_resstore_dedupe_versions_link(tmp_path, monkeypatch):
+    from ats import resstore
+    monkeypatch.setattr(resstore, "STORE", tmp_path / "store")
+    assert resstore.roll_from_name("ae22b004.pdf") == "AE22B004"
+    r, h1, ext, created = resstore.add(b"%PDF one", "AE22B004.pdf")
+    r2, h1b, _, created2 = resstore.add(b"%PDF one", "other.pdf", roll="AE22B004")
+    assert (r, r2, h1) == ("AE22B004", "AE22B004", h1b) and created and not created2
+    _, h2, _, _ = resstore.add(b"%PDF two", "AE22B004.pdf")
+    assert len(resstore.versions("AE22B004")) == 2
+    job = tmp_path / "job"
+    resstore.link(job, "AE22B004", h1)
+    resstore.link(job, "AE22B004", h2)
+    links = list((job / "resumes").iterdir()) if (job / "resumes").exists() else list(job.iterdir())
+    assert len(links) == 1 and links[0].is_symlink()
+    assert resstore.linked_hash(job, "AE22B004") == h2

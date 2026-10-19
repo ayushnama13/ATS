@@ -17,6 +17,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="ats")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("companies")
+    sub.add_parser("migrate", help="move every job's resumes into data/resumes/<roll>/ and leave symlinks")
     e = sub.add_parser("env", help="show which .env / API keys were loaded")
     e.add_argument("--test", action="store_true", help="make a tiny live call per key")
     for n in ("profile", "rubric", "rank", "embed"):
@@ -51,6 +52,10 @@ def main(argv=None):
                 print(f"test {mask(k)}: HTTP {r.status_code} {note}")
             if not config.GEMINI_API_KEYS:
                 print("test     : no key to test")
+        return
+    if a.cmd == "migrate":
+        from . import resstore
+        print(resstore.migrate(progress=lambda c: print("  done", c)))
         return
     if a.cmd == "companies":
         print("\n".join(ingest.list_companies()))

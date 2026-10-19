@@ -10,3 +10,4 @@ data/companies/*/_sheet.*
 data/companies/*/applicants.*
 data/uploads/
 out/
+data/resumes/

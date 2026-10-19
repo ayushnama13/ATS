@@ -35,3 +35,11 @@ Generation is limited to ~13 requests/min (resumes are batched 3 per request); e
 It supports `export KEY=value`, quotes, inline `# comments`, and CRLF. Placeholder values are treated as "no key".
 `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) sets one key; `GEMINI_API_KEYS=a,b,c` sets several, rotated on rate limits.
 See `.env.example` for every option.
+
+## Resume storage
+
+All resumes live once in `data/resumes/<ROLL>/<hash>.<ext>` (content-addressed: identical bytes are never stored twice; a changed resume becomes a new version of that person). Each job's `resumes/` folder holds only relative symlinks to the chosen version. The applicant sheet (xlsx/xls/csv/tsv) records who applied to which job.
+
+- **Add resumes → From database** links people already stored to the current job; **Upload files** adds new ones.
+- The candidate drawer has a version picker when a person has several resumes.
+- `python -m ats migrate` moves any legacy real files into the central store and replaces them with symlinks.

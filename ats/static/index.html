@@ -69,7 +69,6 @@
       <span id="count" class="muted"></span>
       <span class="grow"></span>
       <button id="addResBtn" title="Add resumes to this job">＋ Add resumes</button>
-      <input type="file" id="addResFile" multiple accept=".pdf,.docx,.doc,.zip" hidden>
       <button id="exportBtn" class="primary">Export Excel</button>
     </div>
     <div id="notice" class="notice" hidden></div>
@@ -104,6 +103,21 @@
 
 <section id="tab-jd" class="tab"><div class="narrow" id="jdBody"></div></section>
 </main>
+
+<dialog id="addDlg">
+  <div class="row between"><h3 style="margin:0">Add resumes to this job</h3><button class="link" id="addClose">✕</button></div>
+  <div class="seg" id="addTabs"><button data-m="upload" class="on">Upload files</button><button data-m="db">From database</button></div>
+  <div id="addUpload">
+    <p class="hint">PDF/DOCX files or a ZIP. Name files by roll number (e.g. AE22B004.pdf). A resume that is already stored is not copied again; a changed one is kept as a new version.</p>
+    <input type="file" id="addResFile" multiple accept=".pdf,.docx,.doc,.zip">
+    <div class="row"><button class="primary" id="addUpBtn">Upload &amp; add</button><span class="muted" id="addUpMsg"></span></div>
+  </div>
+  <div id="addDb" hidden>
+    <input id="dbSearch" placeholder="Search by name or roll number…">
+    <div id="dbList" class="dblist"></div>
+    <div class="row"><button class="primary" id="dbAddBtn">Add selected</button><span class="muted" id="dbMsg"></span></div>
+  </div>
+</dialog>
 
 <aside id="drawer" hidden><div class="drawerbody" id="drawerBody"></div></aside>
 <script src="app.js"></script>
