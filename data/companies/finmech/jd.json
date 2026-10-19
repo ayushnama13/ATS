@@ -1,0 +1,71 @@
+{
+  "role_title": "Associate Forward Deployed Engineer",
+  "company": "Finmechanics India Pvt. Ltd.",
+  "summary": "A client-facing engineering role involving full-stack development and direct collaboration with financial institutions to build and deploy production-grade solutions for trade execution, risk management, and financial workflows.",
+  "must_have_skills": [],
+  "nice_to_have_skills": [],
+  "competencies": [
+    {
+      "name": "Mathematical Intuition",
+      "description": "Evidence of strong quantitative problem-solving or analytical coursework.",
+      "weight": 5
+    },
+    {
+      "name": "Logical Thinking",
+      "description": "Ability to break down complex problems into structured, clean code or logic.",
+      "weight": 5
+    },
+    {
+      "name": "Communication",
+      "description": "Experience explaining technical concepts to non-technical stakeholders.",
+      "weight": 4
+    },
+    {
+      "name": "Ownership",
+      "description": "Evidence of taking responsibility for end-to-end project outcomes rather than just completing tasks.",
+      "weight": 4
+    },
+    {
+      "name": "Adaptability",
+      "description": "Comfort working in ambiguous environments and interacting with senior experts.",
+      "weight": 3
+    }
+  ],
+  "signals": [
+    "Shipped production-ready software",
+    "Direct client-facing project experience",
+    "Evidence of self-directed learning",
+    "Participation in complex technical projects",
+    "Experience in high-stakes problem solving"
+  ],
+  "preferred_programs": [],
+  "preferred_departments": [],
+  "min_cgpa": null,
+  "keywords": [
+    "Forward Deployed Engineer",
+    "Financial Markets",
+    "Risk Management",
+    "Full stack development",
+    "Client-facing",
+    "Production deployment",
+    "Trade execution",
+    "Mathematical intuition",
+    "Logical thinking",
+    "Ownership",
+    "Ambiguity",
+    "Applied AI",
+    "Workflow automation",
+    "Settlements",
+    "Accounting",
+    "Price discovery",
+    "Technical communication",
+    "Problem solving",
+    "programming fundamentals",
+    "full stack development",
+    "financial markets knowledge",
+    "risk management",
+    "applied ai"
+  ],
+  "source": "llm",
+  "jd_text": "FINMECHANICS INDIA PVT. LTD.\n========================================================================\n====\nFIELD: Job designation\n========================================================================\n====\n-------------------------------------------------------------------------------Associate Forward Deployed Engineer\n-------------------------------------------------------------------------------========================================================================\n====\nFIELD: Job Description\n========================================================================\n====\nRole: Engineer spending a lot of time with financial institution practitioners, shipping solutions\nthat run in production facilitating price discovery, trade execution, limit checks, risk/exposure\ncalculations, workflows, settlements, documents, accounting.\nLocation: Mumbai Client Sites and Office. Occasional client travel to Asia Pacific, the Middle\nEast, UK and Europe.\nOne works with: Traders, Risk Managers, Operations, Finance Professionals and a senior FDE\nmentor from day one.\nOne will learn: Financial Markets, Instruments, Risk Management from first principles,\ntechnology platforms, full stack development, applied AI on real problems.\nWhere it leads: Owning client engagements, becoming a subject matter expert, or core\nplatform engineer within 3-5 years.\nABOUT FINMECHANICS\nFor decades, our industry has relied on large, expensive platforms that address real business\nneeds but are often outdated by the time they are implemented. Once embedded within a\nbank's architecture, these platforms become increasingly costly and difficult to replace.\nOur product journey started in the aftermath of the Global Financial Crisis. Our ambition was not\nto build another platform but to help our clients navigate new market realities, respond to a\nregulatory tsunami, and restore return on equity.\nWorking alongside our clients, we developed a new generation of solutions to tackle these\nchallenges. These platforms are serving 45 financial institutions around the world.\nThe facts:\n- Founded in 2007, headquartered in Singapore, with offices in Sydney, Singapore, Mumbai,\nDubai, Zurich, Amsterdam, London, Vancouver.\n\n- Our clients are spread across 11 countries, 5 continents, including ANZ, DBS, Kotak, Federal,\nAxis, CCIL, etc.\n- 105 people, of whom 50+ are in Mumbai. Small by design.\n- Profitable and revenue-funded since inception. No external investors, no runway to worry\nabout.\nWHAT A FORWARD DEPLOYED ENGINEER (FDE) IS\nA product engineer at a typical software company owns a single capability and rarely meets the\npeople who use it. An FDE is the inverse: you own many capabilities and work very closely with\npeople from the financial institutions. Your client will share problems with you that you will\nunderstand, potentially build/enhance solutions for and deliver. You learn their business well\nenough to challenge them on it, and you make the platform do what they need. This is not a\npure development job, and it is not pure consulting either. A consultant writes a\nrecommendation and leaves. You deliver solutions that runs on the client's infrastructure, in\nproduction, making the client stronger - and you are there months later making it better and\nsolving more problems.\n========================================================================\n========\nFIELD: Requirements\n========================================================================\n========\n-------------------------------------------------------------------------------NO PREREQUISITES IN FINANCE OR IN ANY PARTICULAR TECHNOLOGY.\nWe hire across disciplines. You should, however, be passionate about technology and keen to\nsolve client problems.\nWhat we screen for:\n- Strong mathematical intuition and clean logical thinking. This matters far more to us than any\nspecific coursework.\n- Solid programming fundamentals in any language.\n- Clear written and spoken communication. At times, you will be explaining technical things to\nnon-technical people and functional things to technology personnel.\n- Ownership of an outcome rather than a task.\n- Curiosity about why a business works the way it does, not just what to build.\n- Comfort with ambiguity, and with being the most junior person in a room full of experts. Easiest\npath to becoming senior fast.\n\n========================================================================\n========\nFIELD: Place of posting\n========================================================================\n========\n-------------------------------------------------------------------------------Mumbai\n--------------------------------------------------------------------------------\n\n========================================================================\n========\nFIELD: Accommodation details\n========================================================================\n========\n-------------------------------------------------------------------------------Temporary accommodation provided on joining for the first 14 days.\n-------------------------------------------------------------------------------========================================================================\n========\nFIELD: Bond applicable\n========================================================================\n========\n-------------------------------------------------------------------------------No\n-------------------------------------------------------------------------------Salary: 21LPA"
+}

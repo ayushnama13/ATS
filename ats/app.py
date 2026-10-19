@@ -362,6 +362,50 @@ async def new_job(title: str = Form(...), jd_text: str = Form(""), jd_file: Uplo
     return {"slug": slug, "resumes": len(used)}
 
 
+@app.post("/api/companies/{slug}/resumes")
+async def add_resumes(slug: str, resumes: list[UploadFile] = File(...)):
+    """Add individual resumes (or a zip) to an existing job without recreating it."""
+    d = ingest.company_dir(slug)
+    rdir = d / "resumes"
+    rdir.mkdir(exist_ok=True)
+    taken = {f.stem.upper() for f in rdir.glob("*")}
+    added, skipped = [], []
+
+    def put(name, data):
+        stem, ext = Path(name).stem, Path(name).suffix.lower()
+        if ext not in ingest.RESUME_EXTS:
+            skipped.append(name)
+            return
+        out, n = stem, 2
+        while out.upper() in taken:
+            out, n = f"{stem}-{n}", n + 1
+        taken.add(out.upper())
+        (rdir / f"{out}{ext}").write_bytes(data)
+        added.append(out.upper())
+
+    for up in resumes:
+        data = await up.read()
+        name = Path(up.filename or "resume.pdf").name
+        if name.lower().endswith(".zip"):
+            tmp = d / "_up.zip"
+            tmp.write_bytes(data)
+            with zipfile.ZipFile(tmp) as z:
+                for m in z.infolist():
+                    if not m.is_dir() and not Path(m.filename).name.startswith((".", "_")):
+                        put(Path(m.filename).name, z.read(m))
+            tmp.unlink()
+        else:
+            put(name, data)
+    if not added:
+        raise HTTPException(400, "no PDF/DOCX/DOC resumes in the upload")
+    with _lock:
+        _state.pop(slug, None)
+        st = _company(slug)
+    if llm.available():
+        _warm_embeddings(slug)   # new resumes need embeddings; semantic is skipped until they exist
+    return {"added": added, "skipped": skipped, "total": len(st["comp"]["candidates"])}
+
+
 @app.delete("/api/companies/{slug}")
 def delete_job(slug: str):
     d = ingest.company_dir(slug)

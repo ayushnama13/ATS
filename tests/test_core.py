@@ -70,3 +70,10 @@ def test_parse_sheet_xlsx_with_title_row(tmp_path):
     wb.save(p)
     title, rows = ingest.parse_sheet(p)
     assert title == "Export title" and rows[0]["roll"] == "CS22B001" and rows[0]["cgpa"] == 8.1
+
+
+def test_tfidf_context_survives_tiny_pool():
+    from ats.features import Context
+    c = {"text": "python sql backend engineer", "roll": "A", "words": 4}
+    ctx = Context([c], {"jd_text": "python sql", "keywords": []}, embeddings=None)
+    assert len(ctx.tf_sims) == 1

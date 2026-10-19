@@ -236,6 +236,23 @@ $("#rubricRun").onclick = async () => {
   } catch (e) { alert(e.message); }
   btn.disabled = false; $("#rubricBar").hidden = true; refreshRank();
 };
+$("#addResBtn").onclick = () => $("#addResFile").click();
+$("#addResFile").onchange = async e => {
+  const files = [...e.target.files]; e.target.value = "";
+  if (!files.length) return;
+  const fd = new FormData(); files.forEach(f => fd.append("resumes", f));
+  const btn = $("#addResBtn"); btn.disabled = true; btn.textContent = "Adding…";
+  try {
+    const r = await fetch(`/api/companies/${S.slug}/resumes`, {method: "POST", body: fd});
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    const j = await r.json();
+    await init(S.slug);
+    $("#notice").hidden = false;
+    $("#notice").textContent = `Added ${j.added.length} resume(s)${j.skipped.length ? `, skipped ${j.skipped.length} unsupported` : ""}. Run the AI review to score them.`;
+  } catch (err) { alert("Could not add resumes: " + err.message); }
+  btn.disabled = false; btn.textContent = "＋ Add resumes";
+};
+
 $("#exportBtn").onclick = async () => {
   const blob = await (await jpost(`/api/companies/${S.slug}/export`, body())).blob();
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${S.slug}_ranking.xlsx`; a.click();

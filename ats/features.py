@@ -89,7 +89,9 @@ class Context:
         self.prof = prof
         kw = prof.get("keywords", [])
         texts = [c["text"] or " " for c in candidates]
-        self.tf = TfidfVectorizer(stop_words="english", ngram_range=(1, 2), sublinear_tf=True, min_df=2, max_df=0.9)
+        small = len(texts) < 5   # min_df/max_df filtering is meaningless (and errors) on tiny pools
+        self.tf = TfidfVectorizer(stop_words="english", ngram_range=(1, 2), sublinear_tf=True,
+                                  min_df=1 if small else 2, max_df=1.0 if small else 0.9)
         mat = self.tf.fit_transform(texts)
         self.jd_vec = self.tf.transform([prof.get("jd_text", "") + " " + " ".join(kw)])
         self.tf_sims = (mat @ self.jd_vec.T).toarray().ravel()

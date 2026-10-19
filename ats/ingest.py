@@ -127,6 +127,9 @@ def load_company(slug, with_text=True, ocr=True):
         title, rows = parse_sheet(sheet)
     else:
         title, rows = _title(d), rows_from_resumes(rdir)
+    known = {r["roll"] for r in rows}
+    if sheet:   # resumes added later that the sheet doesn't list
+        rows = rows + [r for r in rows_from_resumes(rdir) if r["roll"] not in known]
     seen, cands = set(), []
     for r in rows:
         if r["roll"] in seen:
