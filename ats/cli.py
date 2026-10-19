@@ -17,7 +17,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="ats")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("companies")
-    sub.add_parser("env", help="show which .env / API keys were loaded")
+    e = sub.add_parser("env", help="show which .env / API keys were loaded")
+    e.add_argument("--test", action="store_true", help="make a tiny live call per key")
     for n in ("profile", "rubric", "rank", "embed"):
         p = sub.add_parser(n)
         p.add_argument("slug")
@@ -40,6 +41,16 @@ def main(argv=None):
         print("env file :", config.ENV_FILE or "none found (looked in project root and current dir)")
         print("api keys :", ", ".join(mask(k) for k in config.GEMINI_API_KEYS) or "NONE - AI features disabled")
         print("model    :", config.GEMINI_MODEL, "| embeddings:", config.GEMINI_EMBED_MODEL)
+        if a.test:
+            import httpx
+            for k in config.GEMINI_API_KEYS:
+                r = httpx.post(f"{config.GEMINI_BASE}/models/{config.GEMINI_MODEL}:generateContent", params={"key": k},
+                               json={"contents": [{"parts": [{"text": "say ok"}]}]}, timeout=60)
+                note = {200: "works", 400: "rejected (invalid key?)", 403: "rejected (key not allowed)",
+                        429: "valid, but rate-limited right now", 503: "valid, model busy - retry later"}.get(r.status_code, r.text[:80])
+                print(f"test {mask(k)}: HTTP {r.status_code} {note}")
+            if not config.GEMINI_API_KEYS:
+                print("test     : no key to test")
         return
     if a.cmd == "companies":
         print("\n".join(ingest.list_companies()))

@@ -1,0 +1,87 @@
+{
+  "role_title": "Software Engineer",
+  "company": "Microsoft",
+  "summary": "Design, develop, and test software systems and applications. Contribute to architecture, write maintainable code, perform testing, debug issues, and support live service operations within a collaborative, growth-oriented environment.",
+  "must_have_skills": [
+    "c / c++",
+    "java",
+    "javascript",
+    "python"
+  ],
+  "nice_to_have_skills": [],
+  "competencies": [
+    {
+      "name": "Technical Problem Solving",
+      "description": "Evidence of debugging, testing, and resolving technical issues in software projects.",
+      "weight": 5
+    },
+    {
+      "name": "Collaborative Mindset",
+      "description": "Experience working in teams, partnering with stakeholders, and contributing to shared goals.",
+      "weight": 4
+    },
+    {
+      "name": "Growth Mindset",
+      "description": "Demonstrated ability to learn new technologies, processes, and adapt to feedback.",
+      "weight": 4
+    },
+    {
+      "name": "Code Quality & Maintainability",
+      "description": "Evidence of writing extensible, documented, and maintainable code.",
+      "weight": 5
+    },
+    {
+      "name": "Operational Awareness",
+      "description": "Understanding of deployment processes, automation, and live service maintenance.",
+      "weight": 3
+    }
+  ],
+  "signals": [
+    "Internships in software engineering",
+    "Open source contributions",
+    "Technical project work involving full-cycle development",
+    "Experience with automated testing or CI/CD pipelines",
+    "Participation in hackathons or coding competitions"
+  ],
+  "preferred_programs": [
+    "B.Tech",
+    "B.S.",
+    "M.Tech",
+    "M.S."
+  ],
+  "preferred_departments": [
+    "Computer Science",
+    "Software Engineering",
+    "Related Technical Fields"
+  ],
+  "min_cgpa": null,
+  "keywords": [
+    "Software Engineer",
+    "Architecture",
+    "Cloud-based",
+    "Extensible",
+    "Maintainable",
+    "Live Site",
+    "Automation",
+    "Deployment",
+    "Debugging",
+    "Technical Validation",
+    "Growth Mindset",
+    "Stakeholder partnership",
+    "Code plans",
+    "Design hypotheses",
+    "Reliability",
+    "Diagnosability",
+    "Infrastructure",
+    "Product features",
+    "c",
+    "c#",
+    "cloud computing",
+    "system architecture",
+    "automation",
+    "debugging",
+    "live site operations"
+  ],
+  "source": "llm",
+  "jd_text": "SWE_SWE_IC2_JD\nJob Posting Title : Software Engineer\n\nOverview\nCome build community, explore your passions and do your best work at Microsoft. This opportunity will allow you to bring your aspirations, talent, potential and excitement for the journey ahead. \n\nAs a Software Engineer, you will help plan, design, develop and test software systems or applications for software enhancements and new products which may be used in local, networked, cloud-based, or Internet-related computer programs. This opportunity will allow you to develop software, tools and code to be used in support of design, infrastructure and technology platforms as well as commercial or end-user applications. You will use current programming language and technologies to write code, perform testing and debug any issues with robust documentation, procedures for deployment and processes for maintenance. \n\nMicrosoft\u2019s mission is to empower every person and every organization on the planet to achieve more. As employees we come together with a growth mindset, innovate to empower others, and collaborate to realize our shared goals. Each day we build on our values of respect, integrity, and accountability to create a culture of inclusion where everyone can thrive at work and beyond.\n\nResponsibilities\n\nYou will contribute in partnership with appropriate stakeholder to determine user requirements for a feature and consider a variety of feedback channels to incorporate insights into future designs or solution fixes.\nYou will learn and contribute to processes for the architecture of a product/solution feature and learns to create proposals by testing design hypotheses and helping to refine code plans under the technical leadership of others as well as help produce code to test hypotheses for technical solutions and assists with technical validation efforts. \nWith guidance, you will learn to create and implement code that is extensible and maintainable and apply diagnosability, reliability and maintainabilit, and understand when the code is ready to be shared and delivered for a product, service, or feature reusing code as applicable\nYou will learn to review work items to gain knowledge of product features in partnership with appropriate stakeholders and assist and learn about breaking down work items into tasks and provides estimation as well as escalate any issues that would cause a delay.\nYou will learn about and contribute to operations of live service as issues arise on a rotational, on-call basis and identify solutions and mitigations to simple issues impacting performance or functionality of Live Site services and escalates as necessary.\nYou will help develop and contribute to automation within production and deployment of a product feature and run code in simulated or other non-production environments to confirm functionality and error-free runtime for products with oversight.\nYou will embody our culture and values.\n\nQualifications\nRequired Qualifications (RQs)\nBachelor's Degree in Computer Science, or related technical discipline with proven experience coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python\nOR equivalent experience\n\nPreferred Qualifications (PQs)\nBachelor's Degree (or currently pursuing) in Computer Science or related technical field AND 1+ year(s) technical engineering experience with coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python\nOR Master's Degree (or currently pursuing) in Computer Science or related technical field with proven experience coding in languages including, but not limited to, C, C++, C#, Java, JavaScript, or Python\nOR equivalent experience"
+}
